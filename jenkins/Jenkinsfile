@@ -6,7 +6,7 @@ pipeline {
         }
     }
     triggers {
-      cron 'H * * * *'
+      cron '0 * * * *'
     }
 
     environment {
