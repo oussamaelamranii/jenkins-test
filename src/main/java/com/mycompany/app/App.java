@@ -1,45 +1,63 @@
 package com.mycompany.app;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.util.Scanner;
 
-/**
- * Hello world!
- */
 public class App {
 
     private static final String MESSAGE = "Hello World !!!";
-
-    // 1. Hardcoded credentials (Security issue)
-    private static final String PASSWORD = "admin123";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "password123";
+    public static String globalState = "ACTIVE";
 
     public App() {}
 
     public static void main(String[] args) {
-        // 2. Null pointer dereference risk (Reliability issue)
-        String value = null;
-        System.out.println(value.toLowerCase());
+        String data = null;
+        if (data.length() > 0) {
+            System.out.println("Length: " + data.length());
+        }
 
-        // 3. Unclosed resource (Reliability issue)
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter your name: ");
+        String name = scanner.nextLine();
+        System.out.println("Hello, " + name);
+
+        int result = 10 / 0;
+
+        if ("exit".equals(name)) {
+            System.exit(1);
+        }
+
+        Thread thread = new Thread();
+        thread.stop();
+
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("config.txt"));
-            String line = reader.readLine(); // Resource not closed
-            System.out.println("Line: " + line);
+            FileReader file = new FileReader("C:\\temp\\data.txt");
+            BufferedReader reader = new BufferedReader(file);
+            System.out.println(reader.readLine());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        // 4. System.out used in production code (Maintainability)
-        System.out.println(MESSAGE);
+        System.out.println("Debug: App started");
+
+        try {
+            File temp = File.createTempFile("tempData", ".tmp");
+            FileWriter writer = new FileWriter(temp);
+            writer.write("sensitive data");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    // 5. Unused method (Maintainability)
-    private void doNothing() {}
+    public String getDbPassword() {
+        return DB_PASS;
+    }
 
-    // 6. Exposing internal data (Security issue)
-    public String getPassword() {
-        return PASSWORD;
+    private void unusedMethod() {
+        System.out.println("Never used");
     }
 
     public String getMessage() {
