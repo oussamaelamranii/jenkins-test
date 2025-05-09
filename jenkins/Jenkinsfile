@@ -5,8 +5,9 @@ pipeline {
             args '-v /root/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'  
         }
     }
+
     triggers {
-      cron '0 * * * *'
+        cron '0 * * * *'  // Run at the top of every hour
     }
 
     environment {
@@ -38,6 +39,20 @@ pipeline {
             post {
                 always {
                     junit 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        mvn clean verify sonar:sonar \
+                          -Dsonar.projectKey=ajava-maven-project \
+                          -Dsonar.projectName='ajava-maven-project' \
+                          -Dsonar.host.url=http://13.69.247.235:9000 \
+                          -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
