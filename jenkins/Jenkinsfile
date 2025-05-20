@@ -1,8 +1,8 @@
 pipeline {
     agent {
         docker {
-            image 'maven:3.8.6-openjdk-17'  // Image officielle
-            args '-v $HOME/.m2:/root/.m2'    // Correct mount path
+            image 'ilyes94/maven-docker-java17'
+            args '-v /root/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
@@ -11,19 +11,30 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerHub')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')  // Corrigé ici
+        DOCKER_CONFIG = '/tmp/.docker'
     }
 
     stages {
         stage('Build') {
             steps {
-                sh 'mvn -B -DskipTests clean package'
+                script {
+                    def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
+                    def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
+                    sh 'docker info'
+                    sh 'mvn -B -DskipTests clean package'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh 'mvn test'
+                script {
+                    def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
+                    def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
+                    sh 'docker info'
+                    sh 'mvn test'
+                }
             }
             post {
                 always {
@@ -34,32 +45,57 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                     sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=ajava-maven-project \
-                        -Dsonar.host.url=http://localhost:9000 \
-                        -Dsonar.token=${SONAR_TOKEN}
+                        mvn clean verify sonar:sonar \
+                          -Dsonar.projectKey=ajava-maven-project \
+                          -Dsonar.projectName='ajava-maven-project' \
+                          -Dsonar.host.url=http://localhost:9000 \
+                          -Dsonar.token=${SONAR_TOKEN}
                     """
                 }
             }
         }
 
-        stage('Docker Operations') {
-            agent any  // Exécute sur l'hôte Jenkins (accès direct à Docker)
+        stage('Deliver') {
+            steps {
+                sh './jenkins/scripts/deliver.sh'
+            }
+        }
+
+        stage('Docker Build') {
             steps {
                 script {
                     def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
                     def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
-                    
-                    withCredentials([usernamePassword(credentialsId: 'dockerHub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                    sh "docker build -t ${name}:${version} -f Dockerfile ."
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                    def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
+                    def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
                         sh """
-                            docker build -t ${name}:${version} .
                             echo ${dockerHubPassword} | docker login -u ${dockerHubUser} --password-stdin
                             docker tag ${name}:${version} ${dockerHubUser}/${name}:${version}
                             docker push ${dockerHubUser}/${name}:${version}
-                            docker run -d --name ${name}-${version} ${dockerHubUser}/${name}:${version}
                         """
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
+                    def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                        sh "docker run -d --name ${name}-${version}-$BUILD_NUMBER ${dockerHubUser}/${name}:${version}"
                     }
                 }
             }
