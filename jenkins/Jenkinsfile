@@ -2,17 +2,17 @@ pipeline {
     agent {
         docker {
             image 'ilyes94/maven-docker-java17'
-            args '-v /root/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'
+            args '-v /root/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock'  
         }
     }
 
     triggers {
-        cron 'H/30 * * * *'
+        cron 'H/30 * * * *'  
     }
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')  // Corrigé ici
-        DOCKER_CONFIG = '/tmp/.docker'
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKER_CONFIG = '/tmp/.docker'  
     }
 
     stages {
@@ -21,7 +21,7 @@ pipeline {
                 script {
                     def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
                     def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
-                    sh 'docker info'
+                    sh 'docker info'  
                     sh 'mvn -B -DskipTests clean package'
                 }
             }
@@ -45,7 +45,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
                     sh """
                         mvn clean verify sonar:sonar \
                           -Dsonar.projectKey=ajava-maven-project \
@@ -78,11 +78,11 @@ pipeline {
                 script {
                     def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
                     def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerHub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
                         sh """
-                            echo ${dockerHubPassword} | docker login -u ${dockerHubUser} --password-stdin
-                            docker tag ${name}:${version} ${dockerHubUser}/${name}:${version}
-                            docker push ${dockerHubUser}/${name}:${version}
+                            echo ${env.dockerHubPassword} | docker login -u ${env.dockerHubUser} --password-stdin
+                            docker tag ${name}:${version} ${env.dockerHubUser}/${name}:${version}
+                            docker push ${env.dockerHubUser}/${name}:${version}
                         """
                     }
                 }
@@ -94,8 +94,8 @@ pipeline {
                 script {
                     def name = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.name', returnStdout: true).trim()
                     def version = sh(script: 'mvn -q -DforceStdout help:evaluate -Dexpression=project.version', returnStdout: true).trim()
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
-                        sh "docker run -d --name ${name}-${version}-$BUILD_NUMBER ${dockerHubUser}/${name}:${version}"
+                    withCredentials([usernamePassword(credentialsId: 'dockerHub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                        sh "docker run -d --name ${name}-${version}-$BUILD_NUMBER ${env.dockerHubUser}/${name}:${version}"
                     }
                 }
             }
