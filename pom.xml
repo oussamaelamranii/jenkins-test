@@ -1,42 +1,74 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  
   <groupId>com.mycompany.app</groupId>
-  <artifactId>my-app</artifactId>
-  <packaging>jar</packaging>
+  <artifactId>ajava-maven-project</artifactId>
   <version>2.0-SNAPSHOT</version>
-  <name>my-app</name>
+  <packaging>jar</packaging>
+  
+  <name>ajava-maven-project</name>
+  <description>Project for Java with Maven and SonarQube integration</description>
   <url>https://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <java.version>11</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+    
+    <!-- SonarQube Properties -->
+    <sonar.projectKey>ajava-maven-project</sonar.projectKey>
+    <sonar.projectName>ajava-maven-project</sonar.projectName>
+    <sonar.host.url>http://host.docker.internal:9000</sonar.host.url>
+    <sonar.language>java</sonar.language>
+    <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
+    
+    <!-- Dependencies Versions -->
+    <junit.jupiter.version>5.10.2</junit.jupiter.version>
+    <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+    <maven.jar.plugin.version>3.4.1</maven.jar.plugin.version>
+    <maven.enforcer.plugin.version>3.4.1</maven.enforcer.plugin.version>
+    <sonar.maven.plugin.version>3.9.1.2184</sonar.maven.plugin.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
-      <version>5.10.2</version>
+      <version>${junit.jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.jupiter.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+
   <build>
     <pluginManagement>
       <plugins>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.13.0</version>
+          <version>${maven.compiler.plugin.version}</version>
           <configuration>
-            <release>11</release>
+            <release>${java.version}</release>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
+    
     <plugins>
       <plugin>
-        <!-- Build an executable JAR -->
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.4.1</version>
+        <version>${maven.jar.plugin.version}</version>
         <configuration>
           <archive>
             <manifest>
@@ -47,15 +79,34 @@
           </archive>
         </configuration>
       </plugin>
+      
       <plugin>
-      <groupId>org.sonarsource.scanner.maven</groupId>
-      <artifactId>sonar-maven-plugin</artifactId>
-      <version>3.9.1.2184</version> 
-    </plugin>
+        <groupId>org.sonarsource.scanner.maven</groupId>
+        <artifactId>sonar-maven-plugin</artifactId>
+        <version>${sonar.maven.plugin.version}</version>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>sonar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <useSystemClassLoader>false</useSystemClassLoader>
+        </configuration>
+      </plugin>
+      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.4.1</version>
+        <version>${maven.enforcer.plugin.version}</version>
         <executions>
           <execution>
             <id>enforce-maven</id>
@@ -77,4 +128,14 @@
       </plugin>
     </plugins>
   </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>3.4.3</version>
+      </plugin>
+    </plugins>
+  </reporting>
 </project>
