@@ -38,13 +38,13 @@ pipeline {
 
        stage('SonarQube Analysis') {
     steps {
-        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
             sh """
                 mvn clean verify sonar:sonar \
-                -Dsonar.projectKey=second-test \
-                -Dsonar.projectName=second-test \
-                -Dsonar.host.url=http://localhost:9000 \
-                -Dsonar.token=${SONAR_TOKEN}
+  -Dsonar.projectKey=second-testt \
+  -Dsonar.projectName='second-test' \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.token=sqp_e7465a670fa205090599c4d1cb418b37df5fa34f
             """
         }
     }
